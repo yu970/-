@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>无限世界 · 位面矩阵 | 黑金终端</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        .story-text, .note-textarea, .identity-card .card-content, .elevator-card .card-content { user-select: text !important; cursor: text; }
+        body, .auth-container, .main-container, .top-bar, .left-panel, .right-panel, .card, .dungeon-card, .item-slot, .note-float-btn, .nav-arrow, .exit-dungeon-btn, .identity-summary { user-select: none; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg-deep: #0A0A0A; --bg-panel: #0D0D0D; --bg-card: #111111;
+            --gold-platinum: #E5E4E2; --gold-champagne: #F7E7CE; --gold-dark: #8B7D6B;
+            --accent-cyan: #00FFFF; --border-subtle: #1A1A1A; --border-gold: #2A2520;
+            --text-primary: #D0D0D0; --text-secondary: #888888; --text-dim: #555555;
+        }
+        body { background: var(--bg-deep); color: var(--text-primary); font-family: 'Courier New', monospace; font-size: 15px; min-height: 100vh; }
+        .particle-bg { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index:0; opacity:0.25; background: radial-gradient(1px 1px at 15% 25%, rgba(247,231,206,0.6), transparent), radial-gradient(1px 1px at 28% 62%, rgba(0,255,255,0.4), transparent); }
+        .scanlines { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index:9998; opacity:0.04; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.8) 2px, rgba(0,0,0,0.8) 4px); }
+        .auth-container { position: fixed; top:0; left:0; width:100%; height:100%; display: flex; align-items: center; justify-content: center; z-index:100; background: var(--bg-deep); transition:0.6s; }
+        .auth-container.hidden { opacity:0; pointer-events:none; transform:scale(1.02); }
+        .auth-panel { background: var(--bg-panel); border:1px solid var(--border-gold); box-shadow: 0 0 0 1px #000, 0 0 0 3px var(--border-gold); padding:48px 42px; width:500px; max-width:92vw; position:relative; }
+        .circuit-corner { position:absolute; bottom:12px; left:12px; width:40px; height:40px; border-bottom:2px solid var(--gold-dark); border-left:2px solid var(--gold-dark); }
+        .circuit-dot { position:absolute; width:4px; height:4px; background: var(--gold-champagne); animation:dotPulse 3s infinite; top:16px; right:16px; }
+        @keyframes dotPulse { 0%,100%{ opacity:0.3; } 50%{ opacity:0.9; } }
+        .auth-title { font-size:1.3rem; letter-spacing:6px; text-align:center; color:var(--gold-dark); }
+        .auth-subtitle { font-size:0.7rem; letter-spacing:4px; text-align:center; color:var(--text-dim); margin-bottom:32px; }
+        .auth-input-group { margin-bottom:22px; }
+        .auth-label { font-size:0.7rem; letter-spacing:3px; color:var(--text-secondary); display:block; margin-bottom:6px; }
+        .auth-input { width:100%; background:#080808; border:1px solid #1A1A1A; border-bottom:2px solid var(--border-gold); color:var(--gold-champagne); padding:14px 16px; font-family:inherit; font-size:0.9rem; outline:none; }
+        .auth-btn { width:100%; background:transparent; border:1px solid var(--gold-dark); color:var(--gold-champagne); padding:14px; font-size:0.8rem; letter-spacing:5px; cursor:pointer; transition:0.3s; }
+        .auth-btn:hover { background:rgba(247,231,206,0.05); letter-spacing:7px; }
+        .auth-feedback { text-align:center; font-size:0.7rem; margin-top:12px; }
+        .auth-link { text-align:center; margin-top:20px; font-size:0.7rem; color:var(--text-dim); cursor:pointer; }
+        .auth-link span { color:var(--accent-cyan); text-decoration:underline; }
+        .entropy-bar-wrap { height:3px; background:#1A1A1A; margin-top:6px; }
+        .entropy-bar { height:100%; transition:width 0.3s; }
+        .main-container { display: none; flex-direction: column; min-height:100vh; }
+        .main-container.visible { display: flex; }
+        .top-bar { background: var(--bg-card); border-bottom:1px solid var(--border-gold); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; position:sticky; top:0; z-index:50; }
+        .top-bar-logo { font-size:1.2rem; letter-spacing:6px; color:var(--gold-champagne); }
+        .top-bar-status { font-size:0.7rem; letter-spacing:2px; color:#4ADE80; display:flex; align-items:center; gap:8px; }
+        .status-dot { width:8px; height:8px; background:#4ADE80; animation:dotPulse 2s infinite; border-radius:50%; }
+        .top-bar-nav { display:flex; gap:4px; }
+        .top-bar-nav button { background:transparent; border:none; color:var(--text-secondary); padding:8px 18px; font-family:inherit; font-size:0.7rem; letter-spacing:3px; cursor:pointer; transition:0.3s; }
+        .top-bar-nav button:hover { color:var(--gold-champagne); border-bottom:1px solid var(--gold-dark); }
+        .top-bar-nav button.active-nav { color:var(--gold-champagne); border-bottom:2px solid var(--gold-champagne); background:rgba(247,231,206,0.03); }
+        .logout-btn { background:transparent; border:1px solid #5A3A2A; color:#BC9A6C; padding:6px 14px; font-size:0.7rem; letter-spacing:2px; cursor:pointer; }
+        .logout-btn:hover { border-color:#ff5555; color:#ff8888; }
+        .main-layout { display:flex; gap:20px; padding:24px 28px; flex-wrap:wrap; }
+        .left-panel { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:18px; }
+        .right-panel { width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:18px; }
+        .central-panel { flex:1; min-width:360px; }
+        .card { background: var(--bg-card); border:1px solid var(--border-subtle); border-left:3px solid var(--border-gold); padding:18px 16px; box-shadow:0 6px 18px rgba(0,0,0,0.5); }
+        .card-header { font-size:0.7rem; letter-spacing:4px; color:var(--gold-dark); margin-bottom:12px; border-bottom:1px solid #1A1A1A; padding-bottom:8px; text-transform:uppercase; }
+        .card-row { display:flex; justify-content:space-between; padding:6px 0; font-size:0.8rem; border-bottom:1px solid #0F0F0F; }
+        .value.gold { color: var(--gold-champagne); }
+        .value.cyan { color: var(--accent-cyan); }
+        .hp-bar-wrap, .san-bar-wrap { height:5px; margin:4px 0 8px; }
+        .hp-bar-wrap { background:#1A0000; }
+        .san-bar-wrap { background:#001A1A; }
+        .hp-bar { height:100%; background:#CC3333; transition:width 0.4s; }
+        .san-bar { height:100%; background:var(--accent-cyan); transition:width 0.4s; }
+        .equip-slot-grid { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+        .equip-slot { background:#0A0A0A; border:1px solid #2A2A2A; padding:6px 8px; font-size:0.7rem; flex:1 0 100px; text-align:center; cursor:pointer; }
+        .equip-slot.filled { border-color:var(--gold-dark); background:#14100C; }
+        .equip-action-btn { background:#1A1A1A; border:1px solid var(--gold-dark); color:var(--gold-champagne); padding:2px 8px; font-size:0.6rem; margin-top:6px; cursor:pointer; }
+        .activity-carousel { margin-bottom:32px; background:rgba(0,0,0,0.3); border-bottom:1px solid var(--border-gold); padding:20px 0 10px 0; }
+        .activity-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; padding:0 8px; }
+        .activity-header h3 { color:var(--gold-champagne); font-size:0.9rem; letter-spacing:3px; border-left:3px solid var(--gold-dark); padding-left:12px; }
+        .carousel-container { position:relative; display:flex; align-items:center; justify-content:center; margin:12px 0; }
+        .carousel-track-wrap { overflow:hidden; width:100%; border-radius:12px; }
+        .carousel-track { display:flex; transition:transform 0.5s cubic-bezier(0.2,0.9,0.4,1.1); }
+        .carousel-card { flex:0 0 100%; background:linear-gradient(145deg,#101010,#0B0B0B); border:1px solid var(--border-gold); border-top:2px solid var(--gold-dark); padding:28px 24px; cursor:pointer; }
+        .carousel-card:hover { transform:scale(1.01); border-color:var(--gold-champagne); background:#15100C; }
+        .carousel-badge { display:inline-block; background:#1F1A15; padding:4px 12px; font-size:0.65rem; letter-spacing:2px; color:var(--gold-champagne); margin-bottom:16px; border-left:3px solid #D4AF37; }
+        .carousel-title { font-size:1.6rem; font-weight:bold; color:var(--gold-platinum); margin:8px 0 12px; }
+        .carousel-desc { color:#C0B8A8; font-size:0.9rem; margin-bottom:20px; }
+        .carousel-reward { font-size:0.8rem; color:var(--accent-cyan); border-top:1px dashed #2A2A2A; padding-top:14px; display:flex; justify-content:space-between; align-items:center; }
+        .carousel-btn { background:transparent; border:1px solid var(--gold-dark); padding:6px 18px; color:var(--gold-champagne); font-size:0.7rem; cursor:pointer; }
+        .carousel-btn:hover { background:rgba(247,231,206,0.1); border-color:var(--gold-champagne); }
+        .carousel-arrow { background:rgba(0,0,0,0.7); border:1px solid var(--gold-dark); color:var(--gold-champagne); width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; margin:0 6px; }
+        .carousel-arrow:hover { background:#2A2520; border-color:var(--gold-champagne); }
+        .carousel-dots { display:flex; justify-content:center; gap:12px; margin-top:14px; }
+        .carousel-dot { width:8px; height:8px; background:#2A2A2A; border-radius:50%; cursor:pointer; }
+        .carousel-dot.active { background:var(--gold-champagne); box-shadow:0 0 8px rgba(247,231,206,0.6); transform:scale(1.2); }
+        .dungeon-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:22px; margin-bottom:24px; }
+        .dungeon-pagination { display:flex; justify-content:center; gap:16px; margin-top:20px; align-items:center; }
+        .page-btn { background:transparent; border:1px solid var(--gold-dark); color:var(--gold-champagne); padding:6px 14px; font-size:0.7rem; cursor:pointer; transition:0.2s; }
+        .page-btn:hover { background:rgba(247,231,206,0.1); border-color:var(--gold-champagne); }
+        .page-number { color:var(--text-secondary); font-size:0.7rem; }
+        .dungeon-card { background:rgba(13,13,13,0.9); border:1px solid var(--border-gold); padding:20px 18px; cursor:pointer; transition:0.25s; }
+        .dungeon-card:hover { transform:translateY(-3px); border-color:var(--gold-champagne); background:#131313; }
+        .dungeon-title { font-size:1.1rem; letter-spacing:2px; color:var(--gold-champagne); display:flex; justify-content:space-between; }
+        .difficulty { font-size:0.6rem; background:#1F1A15; padding:3px 8px; border-left:2px solid var(--gold-dark); }
+        .dungeon-desc { font-size:0.8rem; color:#C8C8C8; margin-top:8px; }
+        .dungeon-reward { font-size:0.65rem; color:var(--gold-dark); border-top:1px solid #202020; padding-top:8px; margin-top:12px; }
+        .shop-group { margin-bottom:28px; }
+        .shop-group-title { font-size:0.85rem; letter-spacing:3px; color:var(--gold-champagne); border-left:3px solid var(--gold-dark); padding-left:12px; margin:16px 0 12px; }
+        .shop-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #1A1A1A; }
+        .shop-item-info { flex:1; }
+        .shop-item-name { font-size:0.85rem; color:var(--gold-platinum); }
+        .shop-item-desc { font-size:0.65rem; color:var(--text-dim); margin-top:2px; }
+        .shop-item-price { font-size:0.75rem; color:var(--gold-champagne); margin-right:20px; white-space:nowrap; }
+        .shop-buy-btn { background:transparent; border:1px solid var(--gold-dark); color:var(--gold-champagne); padding:5px 14px; font-size:0.7rem; cursor:pointer; }
+        .bag-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(90px,1fr)); gap:8px; margin-top:12px; }
+        .bag-slot { background:#0A0A0A; border:1px solid #1A1A1A; padding:8px 4px; text-align:center; font-size:0.7rem; position:relative; }
+        .bag-slot.filled { border-color:var(--border-gold); color:var(--gold-champagne); }
+        .slot-badge { position:absolute; top:2px; right:4px; font-size:0.6rem; color:var(--gold-dark); }
+        .shop-tabs { display:flex; gap:12px; margin-bottom:16px; }
+        .shop-tab { background:transparent; border:none; color:var(--text-secondary); padding:6px 12px; cursor:pointer; font-family:inherit; font-size:0.75rem; }
+        .shop-tab.active { color:var(--gold-champagne); border-bottom:2px solid var(--gold-champagne); }
+        .forum-messages { max-height:200px; overflow-y:auto; font-size:0.7rem; margin-bottom:12px; border-top:1px solid #1A1A1A; border-bottom:1px solid #1A1A1A; padding:6px 0; }
+        .forum-message { padding:6px 0; border-bottom:1px dashed #1A1A1A; color:var(--text-secondary); }
+        .forum-message .name { color:var(--gold-champagne); }
+        .forum-input-area { display:flex; gap:8px; margin-top:8px; }
+        .forum-input { flex:1; background:#080808; border:1px solid #1A1A1A; border-bottom:1px solid var(--border-gold); color:var(--gold-champagne); padding:6px 8px; font-size:0.7rem; }
+        .forum-send-btn { background:transparent; border:1px solid var(--gold-dark); color:var(--gold-champagne); padding:4px 12px; font-size:0.7rem; cursor:pointer; }
+        .forum-cost { font-size:0.6rem; color:var(--text-dim); text-align:right; margin-top:6px; }
+        .story-area { background:#fefefe; border:1px solid var(--border-gold); border-radius:12px; padding:28px 28px 32px; color:#222; font-family:'Segoe UI', monospace; box-shadow:0 4px 20px rgba(0,0,0,0.2); min-height:580px; display:flex; flex-direction:column; justify-content:space-between; margin-top:20px; }
+        .story-header { border-bottom:2px solid var(--gold-dark); padding-bottom:12px; margin-bottom:24px; }
+        .story-title { font-size:1.5rem; color:#1f1f1f; letter-spacing:2px; }
+        .story-text { flex:1; font-size:1rem; line-height:1.8; color:#222; padding:8px 4px; background:#fff; border-radius:8px; margin-bottom:24px; white-space:pre-wrap; word-break:break-word; cursor:pointer; user-select:text; min-height:320px; }
+        .story-nav { display:flex; justify-content:space-between; align-items:center; margin:12px 0 8px; }
+        .nav-arrow { background:transparent; border:none; color:#8B7D6B; font-size:28px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.2s; font-weight:bold; }
+        .nav-arrow:hover { color:var(--gold-champagne); transform:scale(1.1); }
+        .page-indicator { font-size:0.8rem; color:#8B7D6B; letter-spacing:2px; }
+        .exit-dungeon-btn { background:transparent; border:1px solid #5A3A2A; color:#BC9A6C; padding:8px 20px; cursor:pointer; font-size:0.8rem; margin-top:20px; align-self:center; border-radius:40px; }
+        .exit-dungeon-btn:hover { border-color:#ff8888; color:#ff8888; }
+        .dungeon-info-card-large { background:var(--bg-card); border:1px solid var(--border-gold); border-left:4px solid var(--gold-dark); border-radius:12px; padding:20px; margin-top:8px; }
+        .dungeon-info-card-large .info-title { font-size:0.9rem; letter-spacing:4px; color:var(--gold-champagne); border-bottom:1px solid #2A2A2A; padding-bottom:8px; margin-bottom:16px; }
+        .dungeon-info-card-large .dungeon-name { font-size:1.1rem; font-weight:bold; color:var(--gold-champagne); margin-bottom:12px; }
+        .dungeon-info-card-large .detail-row { display:flex; margin:10px 0; font-size:0.8rem; color:#C0B8A8; }
+        .dungeon-info-card-large .detail-label { width:70px; color:var(--gold-dark); }
+        .dungeon-info-card-large .detail-value { flex:1; }
+        .note-float-btn { position:fixed; bottom:80px; right:30px; width:56px; height:56px; background:#111; border:1px solid var(--gold-dark); border-radius:50%; color:var(--gold-champagne); font-size:26px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:200; transition:0.2s; box-shadow:0 4px 15px rgba(0,0,0,0.5); }
+        .note-float-btn:hover { border-color:var(--gold-champagne); transform:scale(1.05); background:#1A1A1A; }
+        .note-window { position:fixed; width:850px; height:650px; background:rgba(13,13,13,0.96); border:1px solid var(--border-gold); border-top:3px solid var(--gold-dark); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.8); backdrop-filter:blur(8px); z-index:210; display:none; flex-direction:column; }
+        .note-header { padding:12px 16px; background:#0A0A0A; border-bottom:1px solid var(--border-gold); display:flex; justify-content:space-between; align-items:center; cursor:move; border-radius:12px 12px 0 0; }
+        .note-header span { font-size:0.85rem; letter-spacing:2px; color:var(--gold-champagne); }
+        .note-close { background:transparent; border:none; color:#BC9A6C; font-size:20px; cursor:pointer; padding:0 6px; }
+        .note-close:hover { color:#ff8888; }
+        .note-tabs { display:flex; border-bottom:1px solid #2A2A2A; background:#0F0F0F; }
+        .note-tab { flex:1; text-align:center; padding:8px 0; font-size:0.7rem; letter-spacing:2px; color:var(--text-secondary); cursor:pointer; }
+        .note-tab.active { color:var(--gold-champagne); border-bottom:2px solid var(--gold-champagne); }
+        .note-panel { padding:16px; flex:1; overflow-y:auto; }
+        .note-textarea { width:100%; background:#080808; border:1px solid var(--border-gold); color:var(--gold-champagne); font-family:'Courier New', monospace; font-size:0.8rem; line-height:1.4; padding:12px; resize:vertical; outline:none; margin-bottom:12px; user-select:text !important; }
+        .note-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:8px; }
+        .note-btn { background:transparent; border:1px solid var(--gold-dark); color:var(--gold-champagne); padding:5px 14px; font-size:0.7rem; cursor:pointer; }
+        .note-btn:hover { background:rgba(247,231,206,0.08); border-color:var(--gold-champagne); }
+        .identity-card { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(1); width:520px; max-width:85vw; background:#0F0F0F; border:1px solid #C6A43F; border-radius:28px; padding:36px 32px 40px 32px; z-index:500; box-shadow:0 0 0 1000px rgba(0,0,0,0.85), 0 25px 45px rgba(0,0,0,0.6); backdrop-filter:blur(4px); text-align:left; font-family:'Segoe UI', monospace; animation:cardAppear 0.3s ease-out; }
+        @keyframes cardAppear { from{ opacity:0; transform:translate(-50%,-50%) scale(0.9); } to{ opacity:1; transform:translate(-50%,-50%) scale(1); } }
+        @keyframes cardShrink { to{ opacity:0; transform:translate(-50%,-50%) scale(0.2); } }
+        .identity-card h3 { color:#E5C28E; font-size:1.9rem; letter-spacing:6px; text-align:center; font-weight:500; margin-bottom:28px; padding-bottom:12px; border-bottom:1px solid #C6A43F; }
+        .identity-card .card-content { color:#F0E6D2; font-size:1rem; line-height:1.9; background:rgba(20,20,20,0.7); padding:20px; border-radius:20px; margin:8px 0 20px; }
+        .identity-card .card-content p { margin:0 0 14px 0; display:flex; flex-wrap:wrap; align-items:baseline; }
+        .identity-card .card-content .field-label { font-weight:700; color:#E5C28E; font-size:1.05rem; margin-right:12px; min-width:100px; }
+        .identity-card .card-content .field-value { font-weight:400; color:#F2E8D5; font-size:1rem; flex:1; }
+        .identity-card .click-hint { margin-top:8px; font-size:0.8rem; color:#AA9B7A; text-align:center; cursor:pointer; }
+        .identity-summary { background:#0A0A0A; border:1px solid var(--border-gold); border-radius:8px; padding:12px; margin-top:12px; font-size:0.8rem; cursor:pointer; transition:0.2s; }
+        .identity-summary:hover { border-color:var(--gold-champagne); background:#15100C; }
+        .identity-summary .title { color:var(--gold-champagne); font-weight:bold; margin-bottom:6px; }
+        .elevator-card { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(1); width:560px; max-width:85vw; background:#0F0F0F; border:1px solid #C6A43F; border-radius:28px; padding:36px 32px 40px 32px; z-index:500; box-shadow:0 0 0 1000px rgba(0,0,0,0.85), 0 25px 45px rgba(0,0,0,0.6); backdrop-filter:blur(4px); text-align:center; animation:cardAppear 0.3s; }
+        .elevator-card h3 { color:#E5C28E; font-size:1.8rem; letter-spacing:6px; margin-bottom:28px; padding-bottom:12px; border-bottom:1px solid #C6A43F; }
+        .elevator-card .card-content { background:linear-gradient(145deg,#1a1a1a,#0a0a0a); text-align:center; position:relative; overflow:hidden; box-shadow:inset 0 0 20px rgba(0,0,0,0.5); color:#F0E6D2; font-size:1.1rem; line-height:2; padding:20px; border-radius:20px; margin:8px 0 20px; }
+        .card-logo { font-size:1.2rem; letter-spacing:4px; color:#D4AF37; margin-bottom:20px; }
+        .card-room { font-size:2rem; font-weight:bold; color:#F7E7CE; margin:20px 0; }
+        .card-footer { font-size:0.7rem; color:#8B7D6B; margin-top:20px; border-top:1px solid #C6A43F; padding-top:12px; display:inline-block; width:80%; }
+        .item-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+        .item-slot { aspect-ratio:1; background:#0A0A0A; border:1px solid #2A2A2A; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:var(--text-dim); text-align:center; padding:4px; }
+        .item-slot.filled { border-color:var(--gold-dark); background:#14100C; color:var(--gold-champagne); }
+        .typing-loading { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:flex; align-items:center; justify-content:center; z-index:300; flex-direction:column; }
+        .loading-box { background:#0D0D0D; border:1px solid var(--border-gold); padding:40px 60px; text-align:center; min-width:400px; }
+        .typing-line { color:var(--gold-champagne); font-family:monospace; font-size:1rem; letter-spacing:2px; white-space:pre-wrap; margin:12px 0; min-height:2em; }
+        .friend-item, .guild-member, .live-item { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1A1A1A; font-size:0.75rem; }
+        .add-friend-form { display:flex; gap:6px; margin:12px 0; }
+        .add-friend-form input { flex:1; background:#080808; border:1px solid #1A1A1A; color:var(--gold-champagne); padding:6px; font-size:0.7rem; }
+        .guild-create { background:#1A1A1A; border:1px solid var(--gold-dark); padding:8px; text-align:center; margin-bottom:12px; cursor:pointer; }
+        .live-chat { max-height:200px; overflow-y:auto; background:#0A0A0A; padding:8px; margin-top:12px; font-size:0.7rem; }
+        .donate-btn { background:transparent; border:1px solid var(--gold-dark); color:var(--gold-champagne); padding:2px 8px; font-size:0.6rem; cursor:pointer; }
+        .barrage-container { position:fixed; bottom:120px; left:0; width:100%; pointer-events:none; z-index:150; overflow:hidden; height:200px; }
+        .barrage { position:absolute; white-space:nowrap; color:var(--accent-cyan); font-size:0.8rem; text-shadow:0 0 3px rgba(0,0,0,0.5); animation: barrageMove linear forwards; pointer-events:none; background:rgba(0,0,0,0.6); padding:4px 12px; border-radius:20px; border-left:2px solid var(--gold-champagne); }
+        @keyframes barrageMove { 0% { transform:translateX(100%); } 100% { transform:translateX(-100%); } }
+        .excerpt-confirm-float { position:fixed; background:#1A1A1A; border:1px solid #C6A43F; color:#F7E7CE; padding:6px 16px; border-radius:30px; cursor:pointer; z-index:1002; font-size:0.8rem; }
+        .center-loading { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center; z-index:300; }
+        .stream-toggle { display:flex; align-items:center; gap:8px; margin-top:8px; }
+        .toggle-switch { width:32px; height:18px; background:#333; border-radius:20px; cursor:pointer; position:relative; transition:0.2s; }
+        .toggle-switch.active { background:#4ADE80; }
+        .toggle-switch::after { content:''; width:14px; height:14px; background:#fff; border-radius:50%; position:absolute; top:2px; left:2px; transition:0.2s; }
+        .toggle-switch.active::after { left:16px; }
+    </style>
+</head>
+<body>
+<div class="particle-bg"></div>
+<div class="scanlines"></div>
+
+<!-- 登录面板 -->
+<div class="auth-container" id="authContainer">
+    <div class="auth-panel">
+        <div class="circuit-corner"></div><div class="circuit-dot"></div>
+        <div class="auth-title">深 网 终 端</div><div class="auth-subtitle">· Q U A N T U M   A C C E S S ·</div>
+        <div id="authStepLogin">
+            <div class="auth-input-group"><label class="auth-label">玩家代号</label><input type="text" class="auth-input" id="loginCodename" placeholder="代号"></div>
+            <div class="auth-input-group"><label class="auth-label">访问密钥</label><input type="password" class="auth-input" id="loginPassword" placeholder="密钥"></div>
+            <button class="auth-btn" onclick="handleLogin()">▸ 接 入 节 点</button>
+            <div class="auth-feedback" id="loginFeedback"></div>
+            <div class="auth-link" onclick="showRegPanel()">未注册？<span>签署协议 →</span></div>
+        </div>
+        <div id="authStepRegister" style="display:none;">
+            <div id="regStep1"><div class="auth-input-group"><label>手机号</label><input type="tel" id="regPhone" class="auth-input"></div><button class="auth-btn" onclick="sendRegCode()">发送验证</button><div class="auth-feedback" id="regFeedback1"></div></div>
+            <div id="regStep2" style="display:none;"><div class="auth-input-group"><label>验证码</label><input type="text" id="smsCode" class="auth-input"></div><div class="auth-input-group"><label>密码</label><input type="password" id="regPwd" class="auth-input" oninput="updateRegEntropy()"></div><div class="entropy-bar-wrap"><div class="entropy-bar" id="entropyReg"></div></div><button class="auth-btn" onclick="verifyRegStep()">验证继续</button><div class="auth-feedback" id="regFeedback2"></div></div>
+            <div id="regStep3" style="display:none;"><div class="auth-input-group"><label>最终代号</label><input type="text" id="finalCodename" class="auth-input"></div><button class="auth-btn" onclick="finishRegistration()">绑定身份</button><div class="auth-feedback" id="regFeedback3"></div></div>
+            <div class="auth-link" onclick="backToLogin()">已有账号？<span>返回登录</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- 主界面 -->
+<div class="main-container" id="mainContainer">
+    <div class="top-bar">
+        <div class="top-bar-logo">◈ 无 限 世 界 ◈</div>
+        <div class="top-bar-status"><span class="status-dot"></span> 量子链路 · 在线</div>
+        <div class="top-bar-nav">
+            <button class="active-nav" onclick="switchMainTab('dungeon')">副本库</button>
+            <button onclick="switchMainTab('shop')">商店</button>
+            <button onclick="switchMainTab('bag')">背包</button>
+            <button onclick="switchMainTab('social')">社交</button>
+            <button onclick="switchMainTab('live')">直播大厅</button>
+        </div>
+        <button class="logout-btn" onclick="logout()">⊗ 断开链接</button>
+    </div>
+    <div class="main-layout">
+        <div class="left-panel" id="leftPanel"></div>
+        <div class="central-panel" id="centralPanel">
+            <div id="dungeonTab">
+                <div class="activity-carousel" id="activityCarousel">
+                    <div class="activity-header"><h3>⚡ 系统限时 · 位面活动 ⚡</h3><span style="font-size:0.6rem;color:#8B7D6B;">自动轮播中</span></div>
+                    <div class="carousel-container">
+                        <div class="carousel-arrow" id="carouselPrev">〈</div>
+                        <div class="carousel-track-wrap"><div class="carousel-track" id="carouselTrack"></div></div>
+                        <div class="carousel-arrow" id="carouselNext">〉</div>
+                    </div>
+                    <div class="carousel-dots" id="carouselDots"></div>
+                </div>
+                <div class="dungeon-grid" id="dungeonGrid"></div>
+                <div class="dungeon-pagination" id="dungeonPagination"></div>
+            </div>
+            <div id="shopTab" style="display:none;"><div class="card"><div class="card-header">◆ 深渊交易所</div><div class="shop-tabs"><button class="shop-tab active" onclick="switchShopCategory('consumable')">消耗品</button><button class="shop-tab" onclick="switchShopCategory('equipment')">装备</button></div><div id="shopItemsList"></div></div></div>
+            <div id="bagTab" style="display:none;"><div class="card"><div class="card-header">◆ 消耗品</div><div id="bagConsumableList" class="bag-grid"></div><div class="card-header" style="margin-top:16px;">◆ 装备背包</div><div id="bagEquipmentList" class="bag-grid"></div></div></div>
+            <div id="socialTab" style="display:none;"><div class="card"><div class="card-header">◆ 好友系统</div><div class="add-friend-form"><input type="text" id="friendSearch" placeholder="代号或编号"><button class="shop-buy-btn" id="searchFriendBtn">添加好友</button></div><div id="friendsList"></div><div class="card-header">◆ 公会组织</div><div id="guildPanel"></div></div></div>
+            <div id="liveTab" style="display:none;"><div class="card"><div class="card-header">◆ 直播大厅</div><div id="liveRoomList"></div><div id="liveViewerArea" style="display:none;"></div></div></div>
+        </div>
+        <div class="right-panel" id="rightPanel">
+            <div class="card"><div class="card-header">◆ 排行榜 · 历史总积分</div><div id="rankListContainer"></div></div>
+            <div class="card"><div class="card-header">◆ 世界论坛 · 每言0.01积分</div><div id="forumMessages" class="forum-messages"></div><div class="forum-input-area"><input type="text" id="forumInput" class="forum-input" placeholder="输入你的留言..." maxlength="100"><button id="forumSendBtn" class="forum-send-btn">发言</button></div><div class="forum-cost">* 发言消耗0.01积分，全网共享</div></div>
+        </div>
+    </div>
+</div>
+<div id="barrageContainer" class="barrage-container"></div>
+<script>
+    // ==================== 下半段（修复好友申请、副本独立剧情、退出卡顿） ====================
+    let currentUser = null;
+    let inStory = false;
+    let activeLiveStream = null;
+    let liveBarrageInterval = null;
+    let isBarrageEnabled = true;
+    const FORUM_STORAGE_KEY = "world_forum_messages";
+    const GUILDS_STORAGE = "world_guilds";
+    let currentNoteWindow = null, currentNoteButton = null;
+    let currentDungeonIdForNote = null;
+    let isExcerptMode = false;
+    let excerptConfirmBtn = null;
+    let excerptMouseUpHandler = null;
+    let storyClickHandler = null;
+    let storyDisplayDiv = null;
+    let identityCardShown = false, elevatorCardObtained = false, lastIdentityCardHTML = "";
+    let currentDungeonItems = [];
+    let currentStoryParagraphs = [], currentIndex = 0, isTyping = false, currentTypingResolve = null;
+
+    // ---------- 工具函数 ----------
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+
+    // 论坛
+    function initForumMessages() { let msgs = localStorage.getItem(FORUM_STORAGE_KEY); if (!msgs) { const d = [{ name: "系统", text: "欢迎来到无限世界。发言消耗0.01积分。", timestamp: Date.now() }, { name: "尽序", text: "恒安医院有人一起吗？", timestamp: Date.now() - 3600000 }]; localStorage.setItem(FORUM_STORAGE_KEY, JSON.stringify(d)); return d; } return JSON.parse(msgs); }
+    function saveForumMessages(m) { localStorage.setItem(FORUM_STORAGE_KEY, JSON.stringify(m)); }
+    function renderForum() { const c = document.getElementById("forumMessages"); if (!c) return; const msgs = initForumMessages(); c.innerHTML = msgs.slice(-30).map(m => `<div class="forum-message"><span class="name">${escapeHtml(m.name)}</span> ${new Date(m.timestamp).toLocaleTimeString()}<br>${escapeHtml(m.text)}</div>`).join(''); }
+    function postForumMessage() { if (!currentUser) { alert("请先登录"); return; } const inp = document.getElementById("forumInput"), txt = inp.value.trim(); if (!txt) return; if (currentUser.currentScore < 0.01) { alert("积分不足"); return; } currentUser.currentScore = Math.round((currentUser.currentScore - 0.01) * 100) / 100; saveUser(); const msgs = initForumMessages(); msgs.push({ name: currentUser.codename, text: txt.substring(0, 100), timestamp: Date.now() }); saveForumMessages(msgs); renderForum(); inp.value = ''; updatePlayerUI(); }
+
+    // 保存/读取用户
+    function saveUser() { localStorage.setItem("iw_user", JSON.stringify(currentUser)); updatePlayerUI(); renderBag(); updateEquipUI(); }
+    function updatePlayerUI() { if (!currentUser) return; document.getElementById("profileName") && (document.getElementById("profileName").innerText = currentUser.codename); document.getElementById("profileNum") && (document.getElementById("profileNum").innerText = currentUser.number); document.getElementById("totalScore") && (document.getElementById("totalScore").innerText = currentUser.totalScore); document.getElementById("curScore") && (document.getElementById("curScore").innerText = currentUser.currentScore.toFixed(2)); document.getElementById("hpVal") && (document.getElementById("hpVal").innerHTML = `${currentUser.hp}/100`); document.getElementById("sanVal") && (document.getElementById("sanVal").innerHTML = `${currentUser.san}/100`); document.getElementById("hpBarMain") && (document.getElementById("hpBarMain").style.width = `${currentUser.hp}%`); document.getElementById("sanBarMain") && (document.getElementById("sanBarMain").style.width = `${currentUser.san}%`); if (inStory) { document.getElementById("storyHp") && (document.getElementById("storyHp").innerText = currentUser.hp); document.getElementById("storySan") && (document.getElementById("storySan").innerText = currentUser.san); document.getElementById("storyScore") && (document.getElementById("storyScore").innerText = currentUser.currentScore.toFixed(0)); } }
+
+    // 背包和商店
+    function renderBag() { if (!currentUser) return; const cons = currentUser.bag.consumable || []; const consDiv = document.getElementById("bagConsumableList"); if (consDiv) consDiv.innerHTML = cons.length ? cons.map(c => `<div class="bag-slot filled">${c.name}<span class="slot-badge">x${c.quantity}</span></div>`).join('') : '<div style="grid-column:1/-1;text-align:center;color:#555;">暂无消耗品</div>'; const eqs = currentUser.bag.equipment || []; const eqDiv = document.getElementById("bagEquipmentList"); if (eqDiv) eqDiv.innerHTML = eqs.map((eq, idx) => `<div class="bag-slot filled">${eq.name}<button class="equip-action-btn" onclick="equipItemFromBag(${idx})">装备</button></div>`).join(''); if (eqDiv && !eqs.length) eqDiv.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#555;">暂无装备</div>'; }
+    function equipItemFromBag(idx) { const eq = currentUser.bag.equipment[idx]; if (eq) equipItem(eq, idx); }
+    function equipItem(item, bIdx) { let eq = currentUser.equippedItems || []; if (eq.length >= 5) { alert("最多装备5件"); return; } eq.push(item); currentUser.equippedItems = eq; currentUser.bag.equipment.splice(bIdx, 1); saveUser(); updateEquipUI(); renderBag(); }
+    function updateEquipUI() { if (!currentUser) return; const eq = currentUser.equippedItems || []; const cont = document.getElementById("equippedSlotsContainer"); if (cont) { cont.innerHTML = ""; for (let i = 0; i < 5; i++) { const e = eq[i]; const div = document.createElement("div"); div.className = "equip-slot" + (e ? " filled" : ""); div.innerHTML = e ? `${e.name}<br><button class="equip-action-btn" onclick="unequipItem(${i})">卸下</button>` : "空槽位"; cont.appendChild(div); } } const stats = computeTotalStats(eq); const disp = document.getElementById("equipStatsDisplay"); if (disp) disp.innerHTML = `<span>防御+${stats.def || 0} 生命+${stats.hp || 0}</span>`; }
+    function unequipItem(i) { if (!currentUser) return; let eq = currentUser.equippedItems || []; if (!eq[i]) return; const removed = eq[i]; eq[i] = null; currentUser.equippedItems = eq.filter(e => e !== null); if (!currentUser.bag.equipment) currentUser.bag.equipment = []; currentUser.bag.equipment.push(removed); saveUser(); updateEquipUI(); renderBag(); }
+    function computeTotalStats(ei) { let t = { def: 0, hp: 0 }; if (ei) ei.forEach(i => { if (i.stats) Object.entries(i.stats).forEach(([k, v]) => t[k] = (t[k] || 0) + v); }); return t; }
+    function buyConsumable(n, p) { if (currentUser.currentScore < p) { alert("积分不足"); return; } currentUser.currentScore -= p; if (!currentUser.bag.consumable) currentUser.bag.consumable = []; let ex = currentUser.bag.consumable.find(c => c.name === n); if (ex) ex.quantity = (ex.quantity || 1) + 1; else currentUser.bag.consumable.push({ name: n, quantity: 1 }); saveUser(); renderShopConsumable(); renderBag(); }
+    function buyEquipment(item) { if (currentUser.currentScore < item.price) { alert("积分不足"); return; } currentUser.currentScore -= item.price; if (!currentUser.bag.equipment) currentUser.bag.equipment = []; currentUser.bag.equipment.push({ name: item.name, stats: item.stats }); saveUser(); renderShopEquipment(); renderBag(); }
+    const SHOP_CONSUMABLES = {
+        C: [{ name: "安神糖片", desc: "平复心悸", price: 50 }, { name: "除味喷雾", desc: "遮盖气息", price: 80 }, { name: "肾上腺素针剂", desc: "短暂提振", price: 75 }, { name: "加厚纱布绷带", desc: "包扎伤口", price: 35 }, { name: "防滑垫", desc: "消除脚步声", price: 45 }, { name: "应急止痛片", desc: "缓解痛感", price: 50 }, { name: "细麻绳", desc: "固定门窗", price: 26 }, { name: "小型手电筒", desc: "弱光照明", price: 55 }],
+        B: [{ name: "体能恢复药剂", desc: "消除疲劳", price: 1200 }, { name: "体温维持贴", desc: "抵御低温", price: 500 }, { name: "临时伪装贴", desc: "迷惑NPC", price: 1000 }, { name: "强效镇静喷雾", desc: "压制恐慌", price: 300 }, { name: "应急信号烟", desc: "遮挡视野", price: 225 }],
+        A: [{ name: "拟态人偶", desc: "吸引敌方", price: 5000 }, { name: "身份伪装原液", desc: "改写判定", price: 6000 }, { name: "致命伤害缓冲剂", desc: "抵消致死", price: 6500 }, { name: "痕迹彻底清除剂", desc: "抹除行踪", price: 3000 }, { name: "体力极限激发剂", desc: "突破体能", price: 3330 }],
+        S: [{ name: "保命卡", desc: "必死保护", price: 12000 }]
+    };
+    const EQUIPMENT_DB = [
+        { name: "防刮耐磨作战服", price: 720, stats: { def: 9, hp: 18 } },
+        { name: "复合防护手套", price: 460, stats: { def: 5, dodge: 3 } },
+        { name: "轻便护膝护肘套装", price: 380, stats: { def: 7, move: 4 } }
+    ];
+    function renderShopConsumable() { let h = ""; for (let [g, items] of Object.entries(SHOP_CONSUMABLES)) { h += `<div class="shop-group"><div class="shop-group-title">◆ ${g}级 消耗品</div>`; items.forEach(it => { h += `<div class="shop-item"><div class="shop-item-info"><div class="shop-item-name">${it.name}</div><div class="shop-item-desc">${it.desc}</div></div><div class="shop-item-price">${it.price} 积分</div><button class="shop-buy-btn" data-name="${it.name}" data-price="${it.price}">购买</button></div>`; }); h += `</div>`; } document.getElementById("shopItemsList").innerHTML = h; document.querySelectorAll("#shopItemsList .shop-buy-btn").forEach(btn => { btn.addEventListener("click", () => { let name = btn.getAttribute("data-name"); let price = parseInt(btn.getAttribute("data-price")); buyConsumable(name, price); }); }); }
+    function renderShopEquipment() { let h = `<div class="shop-group"><div class="shop-group-title">◆ C~B级装备</div>`; EQUIPMENT_DB.forEach(eq => { h += `<div class="shop-item"><div class="shop-item-info"><div class="shop-item-name">${eq.name}</div><div class="shop-item-desc">${Object.entries(eq.stats).map(([k, v]) => `${k}+${v}`).join(', ')}</div></div><div class="shop-item-price">${eq.price} 积分</div><button class="shop-buy-btn" data-name="${eq.name}" data-price="${eq.price}">购买</button></div>`; }); h += `</div>`; document.getElementById("shopItemsList").innerHTML = h; document.querySelectorAll("#shopItemsList .shop-buy-btn").forEach(btn => { btn.addEventListener("click", () => { let name = btn.getAttribute("data-name"); let eq = EQUIPMENT_DB.find(e => e.name === name); if (eq) buyEquipment(eq); }); }); }
+    const RANK_DATA = [{ name: "尽序", score: 2582000 }, { name: "Over.虚妄", score: 1927000 }, { name: "副本乱走一通谁也别管我", score: 1613000 }, { name: "Null_", score: 1532000 }, { name: "火鸡面就是最屌的", score: 1463000 }, { name: "sadfwvahgdf", score: 1005000 }, { name: "苟住别死就行", score: 973000 }, { name: "EE", score: 856000 }, { name: "我上面那个是给", score: 779000 }, { name: "系统别监视我谢谢", score: 248000 }];
+    function renderRanking() { const c = document.getElementById("rankListContainer"); if (c) c.innerHTML = RANK_DATA.map((r, i) => `<div class="card-row"><span>${(i + 1).toString().padStart(2, '0')} ${r.name}</span><span class="value gold">${(r.score / 10000).toFixed(1)}w</span></div>`).join(''); }
+
+    // ========== 完整副本数据 ==========
+    const GOTHIC_DUNGEONS = [
+        { id: "lamp_shop", name: "冥灯典当旧铺", difficulty: "B级", type: "中式阴诡", desc: "子时三刻，旧铺开张。典当之物，非金非银，乃命也。", reward: "180-350积分、冥器残片", protect: false, story: "昏暗的旧铺里，烛火摇曳。掌柜的骷髅手指向柜台上的契约——\"典当一物，换取一命。你想当掉什么？\"你看到自己的名字已经在契约上缓缓浮现。" },
+        { id: "red_gate", name: "红妆封门古院", difficulty: "B级", type: "中式阴诡", desc: "大红灯笼高高挂，朱门紧闭。你听见绣鞋踏过青石板的声音。", reward: "200-400积分、红嫁衣碎片", protect: false, story: "古院正堂摆着一顶空轿，轿帘无风自动。夜深时，你听见女子在唱《凤冠泪》——\"红妆十里，不及黄泉一程。\"" },
+        { id: "silent_opera", name: "无音戏楼夜场", difficulty: "A级", type: "中式阴诡", desc: "空无一人的戏楼，锣鼓自鸣。台上无人，却有人影晃动。", reward: "500-900积分、戏骨面具", protect: false, story: "你坐在台下，台上影子演着《牡丹亭》。突然，所有影子同时转头看向你——\"客官，您的座位…已经有人了。\"" },
+        { id: "forget_ferry", name: "忘川摆渡栈", difficulty: "B级", type: "中式阴诡", desc: "黄泉路，忘川水。船夫渡你，不收银钱，只取一缕执念。", reward: "220-380积分、忘川石", protect: false, story: "船夫撑着竹篙，水面下无数面孔看着你。\"交出一段记忆，我便渡你过河。\"你发现忘记的东西，会变成河底的石头。" },
+        { id: "bone_fortune", name: "骨签算命堂", difficulty: "C级", type: "中式阴诡", desc: "老妪以骨为签，算你前世今生。签文上写着：切勿回头。", reward: "60-150积分、骨签符", protect: true, story: "骨签散落，拼出一行字：\"你身后站着一个人，他已经跟了你三世。\"老妪忽然抬头，眼眶里是空的。" },
+        { id: "yin_private", name: "阴笺私塾", difficulty: "B级", type: "中式阴诡", desc: "深夜私塾，灯火通明。学生都背对着你，齐声诵读祭文。", reward: "150-300积分、阴笺纸", protect: false, story: "你坐在最后一排，前排的学生突然全部转过身——脸上没有五官，只有一张张白纸，纸上写着你的名字。" },
+        { id: "mirror_village", name: "葬镜山村", difficulty: "A级", type: "中式阴诡", desc: "家家户户门前悬镜，镜中映出的却不是你自己。", reward: "600-1100积分、镇魂镜", protect: false, story: "每面镜子里都站着另一个你，穿着寿衣。你走远时，镜中的你开始向你招手。" },
+        { id: "incense_temple", name: "残香古祠", difficulty: "C级", type: "中式阴诡", desc: "香火断而不断，祠堂门开半扇。牌位上写着你的名字。", reward: "80-180积分、残香", protect: true, story: "三炷香，一炷敬天，一炷敬地，一炷敬自己。你跪下时，牌位上的名字开始流出血泪。" },
+        { id: "coffin_inn", name: "鬼抬轿客栈", difficulty: "B级", type: "中式阴诡", desc: "夜半三更，轿子停在门前。没人见抬轿人的脸。", reward: "250-450积分、纸扎钱", protect: false, story: "轿帘掀开，里面是一口小棺材。你听见外面有人喊：\"新娘子到了…\"" }
+    ];
+    const RULE_DUNGEONS = [
+        { id: "midnight_wait", name: "循环午夜候车厅", difficulty: "C级", type: "规则怪谈", desc: "最后一班公交永远不来。广播循环播放：请勿直视站牌。", reward: "45-120积分、车票残片", protect: true, story: "站牌上的车次表在缓慢变化，你盯着看时，发现上面写的不是站名，而是每一个等车人的死因。" },
+        { id: "return_library", name: "限时归还图书馆", difficulty: "B级", type: "规则怪谈", desc: "借书逾期者，将永远不会离开。你手中的书，已经逾期七天了。", reward: "180-320积分、逾期警告", protect: false, story: "图书馆的灯突然熄灭，书架间传来脚步声。你借的那本书里夹着一张借阅卡，上面写着——\"借阅人：你。归还日期：昨天。\"" },
+        { id: "photo_studio", name: "不回应的照相馆", difficulty: "B级", type: "规则怪谈", desc: "拍下的照片里，你看不见自己的脸。", reward: "200-360积分、泛黄相纸", protect: false, story: "闪光灯亮起时，你看到照片里所有人都笑着，唯独你的位置是空的。摄影师说：\"不要动，我还没拍到你。\"" },
+        { id: "dorm_after_lights", name: "熄灯后的寄宿楼", difficulty: "D级", type: "规则怪谈", desc: "熄灯后走廊有脚步声，请假装睡着。它数数，你别听。", reward: "30-60积分、夜灯符", protect: true, story: "门外传来数数的声音，从1数到99时突然停了。你感觉有人站在床边——\"你睁眼了。规则，你违背了。\"" },
+        { id: "no_checkout", name: "无人收银便利店", difficulty: "C级", type: "规则怪谈", desc: "商品上没有价格。收银台后坐着假人，它在看你的购物袋。", reward: "60-150积分、无价商品", protect: false, story: "你拿起的每一件商品，标签都变成了你的名字。收银台的假人慢慢转动头颅，嘴角裂开——\"请用记忆支付。\"" },
+        { id: "no_leave_banquet", name: "禁止离席宴会厅", difficulty: "B级", type: "规则怪谈", desc: "宴席永不结束。你离席的瞬间，座位会被永远抹去。", reward: "300-550积分、银餐叉", protect: false, story: "宴会厅的门全部消失。桌上的菜永远温热，旁边的人不断重复同样的话语。你站起来时，所有人同时停住动作，齐声说：\"坐下。\"" },
+        { id: "loop_cinema", name: "循环放映老影院", difficulty: "C级", type: "规则怪谈", desc: "荧幕上的电影永远在播。你发现每次循环，座位都会少一排。", reward: "80-200积分、旧票根", protect: true, story: "电影放映到第3遍时，你看到荧幕里出现了你自己。你站起来，荧幕里的你也站起来。然后荧幕里的你开始向荧幕外的你走来。" }
+    ];
+    const LEGACY_DUNGEONS = [
+        { id: "starwish_hospital", name: "恒安私人疗养医院 · 七日囚笼", difficulty: "A级奖励副本", type: "人性/悬疑", desc: "七日疗养周期，合规完成静养观察。光鲜牢笼之下，隐藏着怎样的真相？", reward: "3200积分、随机A级装备*1、永久生命+10、精神抗性+3", protect: false, story: "你睁开眼，纯白的天花板。护士的微笑很标准，但从未眨过眼。七日静养，你发现每天都会忘记一件事。第七天，你看着镜子，不认识镜中的人。" },
+        { id: "rain_estate", name: "雨夜老旧小区", difficulty: "D级", type: "日常悬疑", desc: "九十年代小区深夜匀速拖地声，空巢谜团待解。", reward: "20-35积分", protect: true, story: "雨声掩盖了拖把摩擦地面的声音。你循声走到走廊尽头，声音从紧闭的铁门内传来。门缝里露出一只眼睛——它一直在等你。" },
+        { id: "empty_classroom", name: "空荡晚自习教室", difficulty: "D级", type: "校园诡异", desc: "熄灯前门外三声轻叩，三楼禁留规则。", reward: "25-40积分", protect: true, story: "教室的灯忽然熄灭，门被敲了三下。你想跑，却发现所有窗户都变成了黑板，上面写满了同一句话：\"不要回头。\"" },
+        { id: "abandoned_inn", name: "城郊废弃招待所", difficulty: "C级", type: "密闭悬疑", desc: "十年前失踪事件，前台登记簿暗藏线索。", reward: "45-120积分", protect: false, story: "你翻开登记簿，发现十年前最后一页登记的名字是你自己的。字迹还没干。楼上传来沉重的脚步声，一步一步靠近。" }
+    ];
+    const ACTIVITY_DUNGEONS = [
+        { id: "event_blessed_realm", name: "源初祝福秘境", difficulty: "限时·奖励", type: "恩赐回响", desc: "系统颁发至高奖励：进入秘境获取海量积分与稀有道具。", reward: "5000~20000积分 + S级保命符", protect: false, badge: "奖励副本", story: "光芒笼罩着你，古老的精灵低语：\"你被选中了。带走祝福，或者留下成为祝福的一部分。\"你的影子开始独立于你站立。" },
+        { id: "event_shadow_trial", name: "暗影试炼·深渊挑战", difficulty: "SSS高危", type: "极限生存", desc: "挑战意志极限，胜利者将刻入位面英灵碑，掉落传奇装备。", reward: "15000积分 + 传说装备箱", protect: false, badge: "挑战副本", story: "黑暗中有无数对眼睛盯着你。系统提示：\"你的恐惧将实体化。\"你身后传来自己的脚步声，越来越近。" }
+    ];
+    const ALL_DUNGEONS = [...GOTHIC_DUNGEONS, ...RULE_DUNGEONS, ...LEGACY_DUNGEONS, ...ACTIVITY_DUNGEONS];
+    // 根据副本id获取剧情文本
+    function getStoryByDungeonId(id) {
+        const found = ALL_DUNGEONS.find(d => d.id === id);
+        if (found && found.story) return found.story;
+        return "你踏入这片未知领域，空气中弥漫着古老的气息。四周的环境似乎在流动，你意识到自己已经无法回头。";
+    }
+
+    let currentPage = 1;
+    const ITEMS_PER_PAGE = 9;
+    function renderDungeonGrid() {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        const end = start + ITEMS_PER_PAGE;
+        const pageDungeons = ALL_DUNGEONS.slice(start, end);
+        const grid = document.getElementById("dungeonGrid");
+        grid.innerHTML = "";
+        pageDungeons.forEach(d => {
+            const card = document.createElement("div");
+            card.className = "dungeon-card";
+            card.innerHTML = `<div class="dungeon-title"><span>${d.name}</span><span class="difficulty">${d.difficulty}</span></div>
+                <div class="dungeon-type">${d.type}</div>
+                <div class="dungeon-desc">${d.desc}</div>
+                <div class="dungeon-reward"><span>🎁 ${d.reward}</span>${d.protect ? ' <span style="color:#F7E7CE;">新手保护</span>' : ''}</div>`;
+            card.onclick = () => enterDungeon(d.id, d.name);
+            grid.appendChild(card);
+        });
+        renderPagination();
+    }
+    function renderPagination() {
+        const totalPages = Math.ceil(ALL_DUNGEONS.length / ITEMS_PER_PAGE);
+        const paginationDiv = document.getElementById("dungeonPagination");
+        if (!paginationDiv) return;
+        if (totalPages <= 1) { paginationDiv.innerHTML = ""; return; }
+        let html = `<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled style="opacity:0.3"' : ''}>◀ 上一页</button>`;
+        html += `<span class="page-number">第 ${currentPage} / ${totalPages} 页</span>`;
+        html += `<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled style="opacity:0.3"' : ''}>下一页 ▶</button>`;
+        paginationDiv.innerHTML = html;
+    }
+    function changePage(page) { const totalPages = Math.ceil(ALL_DUNGEONS.length / ITEMS_PER_PAGE); if (page < 1 || page > totalPages) return; currentPage = page; renderDungeonGrid(); }
+
+    // 活动轮播
+    let carouselIndex = 0, carouselTimer = null;
+    function renderCarousel() { const track = document.getElementById("carouselTrack"); if (!track) return; track.innerHTML = ""; ACTIVITY_DUNGEONS.forEach((act, i) => { const cardDiv = document.createElement("div"); cardDiv.className = "carousel-card"; cardDiv.innerHTML = `<div class="carousel-badge">${act.badge || '系统活动'}</div><div class="carousel-title">${act.name}</div><div class="carousel-desc">${act.desc}</div><div class="carousel-reward"><span>🏆 预估奖励：${act.reward}</span><span class="carousel-btn">立即进入 →</span></div>`; cardDiv.onclick = (e) => { if (e.target.classList.contains('carousel-btn')) e.stopPropagation(); enterDungeon(act.id, act.name); }; track.appendChild(cardDiv); }); updateCarouselTransform(); updateDots(); }
+    function updateCarouselTransform() { const track = document.getElementById("carouselTrack"); if (track) track.style.transform = `translateX(-${carouselIndex * 100}%)`; }
+    function updateDots() { const dotsDiv = document.getElementById("carouselDots"); if (!dotsDiv) return; dotsDiv.innerHTML = ""; for (let i = 0; i < ACTIVITY_DUNGEONS.length; i++) { const dot = document.createElement("div"); dot.className = "carousel-dot" + (i === carouselIndex ? " active" : ""); dot.onclick = () => { carouselIndex = i; updateCarouselTransform(); updateDots(); resetCarouselTimer(); }; dotsDiv.appendChild(dot); } }
+    function nextSlide() { if (ACTIVITY_DUNGEONS.length === 0) return; carouselIndex = (carouselIndex + 1) % ACTIVITY_DUNGEONS.length; updateCarouselTransform(); updateDots(); resetCarouselTimer(); }
+    function prevSlide() { if (ACTIVITY_DUNGEONS.length === 0) return; carouselIndex = (carouselIndex - 1 + ACTIVITY_DUNGEONS.length) % ACTIVITY_DUNGEONS.length; updateCarouselTransform(); updateDots(); resetCarouselTimer(); }
+    function resetCarouselTimer() { if (carouselTimer) clearInterval(carouselTimer); carouselTimer = setInterval(() => { nextSlide(); }, 5000); }
+    function initCarouselEvents() { document.getElementById("carouselNext")?.addEventListener("click", nextSlide); document.getElementById("carouselPrev")?.addEventListener("click", prevSlide); const container = document.querySelector(".activity-carousel"); container?.addEventListener("mouseenter", () => { if (carouselTimer) clearInterval(carouselTimer); }); container?.addEventListener("mouseleave", resetCarouselTimer); resetCarouselTimer(); }
+
+    // ========== 笔记本 ==========
+    function loadNoteContent(dungeonId) { return localStorage.getItem(`note_${dungeonId}`) || ""; }
+    function saveNoteContent(dungeonId, content) { localStorage.setItem(`note_${dungeonId}`, content); }
+    function createNoteWidget(dungeonId) { if (currentNoteButton) currentNoteButton.remove(); if (currentNoteWindow) currentNoteWindow.remove(); const btn = document.createElement('div'); btn.className = 'note-float-btn'; btn.innerHTML = '📓'; btn.title = '线索笔记'; document.body.appendChild(btn); currentNoteButton = btn; const win = document.createElement('div'); win.className = 'note-window'; win.style.display = 'none'; win.style.left = 'calc(100% - 880px)'; win.style.top = '100px'; win.innerHTML = `<div class="note-header"><span>📖 位面笔记 · ${escapeHtml(dungeonId)}</span><button class="note-close">✕</button></div><div class="note-tabs"><div class="note-tab active" data-tab="notes">📝 自由笔记</div><div class="note-tab" data-tab="excerpt">✂️ 摘录</div></div><div class="note-panel" id="notePanel"></div>`; document.body.appendChild(win); currentNoteWindow = win; let activeTab = "notes"; let noteContent = loadNoteContent(dungeonId); function renderPanel() { const panel = document.getElementById("notePanel"); if (activeTab === "notes") { panel.innerHTML = `<textarea id="noteTextarea" class="note-textarea" rows="12">${escapeHtml(noteContent)}</textarea><div class="note-actions"><button id="noteSaveBtn" class="note-btn">保存笔记</button><button id="noteClearBtn" class="note-btn">清空</button></div>`; document.getElementById("noteSaveBtn").onclick = () => { noteContent = document.getElementById("noteTextarea").value; saveNoteContent(dungeonId, noteContent); alert("保存成功"); }; document.getElementById("noteClearBtn").onclick = () => { if (confirm("清空所有笔记？")) { document.getElementById("noteTextarea").value = ""; noteContent = ""; saveNoteContent(dungeonId, ""); } }; } else { panel.innerHTML = `<div style="padding:12px; text-align:center;"><p>点击下方按钮后，笔记窗口会暂时隐藏，请在剧情文字中拖动鼠标选择要摘录的内容。选中后会在文字旁出现「确认摘录」按钮。</p><button id="startExcerptBtn" class="note-btn" style="padding:8px 24px;">✂️ 开始摘录</button></div>`; document.getElementById("startExcerptBtn").onclick = () => startExcerptMode(dungeonId); } } function switchTab(tab) { activeTab = tab; document.querySelectorAll(".note-tab").forEach(t => t.classList.remove("active")); document.querySelector(`.note-tab[data-tab="${tab}"]`).classList.add("active"); renderPanel(); } win.querySelectorAll(".note-tab").forEach(tab => tab.onclick = () => switchTab(tab.getAttribute("data-tab"))); win.querySelector(".note-close").onclick = () => win.style.display = "none"; btn.onclick = () => { win.style.display = win.style.display === "none" ? "flex" : "none"; renderPanel(); }; let isDrag = false, offX, offY; const head = win.querySelector(".note-header"); head.addEventListener("mousedown", (e) => { if (e.target === win.querySelector(".note-close")) return; isDrag = true; const rect = win.getBoundingClientRect(); offX = e.clientX - rect.left; offY = e.clientY - rect.top; win.style.transition = "none"; e.preventDefault(); }); window.addEventListener("mousemove", (e) => { if (!isDrag) return; let left = e.clientX - offX, top = e.clientY - offY; left = Math.min(window.innerWidth - win.offsetWidth - 10, Math.max(10, left)); top = Math.min(window.innerHeight - win.offsetHeight - 10, Math.max(10, top)); win.style.left = left + "px"; win.style.top = top + "px"; }); window.addEventListener("mouseup", () => { isDrag = false; win.style.transition = ""; }); renderPanel(); }
+    function startExcerptMode(dungeonId) { if (isExcerptMode) return; const noteWin = currentNoteWindow; if (!noteWin) return; noteWin.style.display = "none"; isExcerptMode = true; if (storyDisplayDiv && storyClickHandler) storyDisplayDiv.removeEventListener('click', storyClickHandler); const toast = document.createElement("div"); toast.innerText = "📌 摘录模式：请用鼠标拖动选择剧情中的文字，选中后点击旁边的「确认摘录」"; toast.style.cssText = "position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:#0A0A0A; color:#F7E7CE; border:1px solid #C6A43F; padding:8px 20px; border-radius:40px; z-index:1001; font-size:0.9rem; white-space:nowrap;"; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); let selectedText = ""; excerptMouseUpHandler = (e) => { const sel = window.getSelection(); const text = sel.toString().trim(); if (text.length === 0) return; selectedText = text; const range = sel.getRangeAt(0); const rect = range.getBoundingClientRect(); if (excerptConfirmBtn) excerptConfirmBtn.remove(); excerptConfirmBtn = document.createElement('div'); excerptConfirmBtn.className = 'excerpt-confirm-float'; excerptConfirmBtn.innerText = '✓ 确认摘录'; excerptConfirmBtn.style.left = (rect.right + 10) + 'px'; excerptConfirmBtn.style.top = (rect.bottom + 5) + 'px'; excerptConfirmBtn.addEventListener('click', (ev) => { ev.stopPropagation(); let currentNote = loadNoteContent(dungeonId); let newNote = currentNote + (currentNote ? "\n\n" : "") + "[摘录] " + selectedText; saveNoteContent(dungeonId, newNote); alert("已摘录到笔记本！"); document.removeEventListener("mouseup", excerptMouseUpHandler); if (excerptConfirmBtn) excerptConfirmBtn.remove(); window.getSelection().removeAllRanges(); isExcerptMode = false; if (storyDisplayDiv && storyClickHandler) storyDisplayDiv.addEventListener('click', storyClickHandler); if (currentNoteWindow) { currentNoteWindow.style.display = "flex"; const notesTab = currentNoteWindow.querySelector('.note-tab[data-tab="notes"]'); if (notesTab) notesTab.click(); const ta = currentNoteWindow.querySelector("#noteTextarea"); if (ta) ta.value = newNote; } }); document.body.appendChild(excerptConfirmBtn); setTimeout(() => { if (excerptConfirmBtn && excerptConfirmBtn.parentNode) excerptConfirmBtn.remove(); }, 10000); }; document.addEventListener("mouseup", excerptMouseUpHandler); }
+    function destroyNoteWidget() { if (currentNoteButton) currentNoteButton.remove(); if (currentNoteWindow) currentNoteWindow.remove(); if (excerptMouseUpHandler) document.removeEventListener("mouseup", excerptMouseUpHandler); if (excerptConfirmBtn) excerptConfirmBtn.remove(); isExcerptMode = false; if (storyDisplayDiv && storyClickHandler && !isExcerptMode) storyDisplayDiv.addEventListener('click', storyClickHandler); }
+
+    // ========== 身份卡 & 物品栏 ==========
+    function initInventory() { currentDungeonItems = new Array(9).fill(null); renderItemGrid(); }
+    function renderItemGrid() { const container = document.getElementById("dungeonItemGrid"); if (!container) return; container.innerHTML = ""; for (let i = 0; i < 9; i++) { const item = currentDungeonItems[i]; const slot = document.createElement("div"); slot.className = "item-slot" + (item ? " filled" : ""); if (item) { slot.innerHTML = `<div class="item-name">${escapeHtml(item.name)}</div>`; slot.title = item.desc || ""; } else { slot.innerHTML = `<div style="opacity:0.3;">空</div>`; } container.appendChild(slot); } }
+    function addItemToInventory(item) { const emptyIndex = currentDungeonItems.findIndex(i => i === null); if (emptyIndex !== -1) { currentDungeonItems[emptyIndex] = item; renderItemGrid(); return true; } else { alert("物品栏已满，无法拾取"); return false; } }
+    async function showElevatorCard() { if (elevatorCardObtained) return; elevatorCardObtained = true; const cardDiv = document.createElement('div'); cardDiv.className = 'elevator-card'; cardDiv.innerHTML = `<h3>电 梯 卡</h3><div class="card-content"><div class="card-logo">◈ INFINITE WORLD ◈</div><div class="card-room">ROOM 816</div><div class="card-footer">VIP 权限 · 全楼层通行</div></div><div class="click-hint">▼ 点击收取至物品栏 ▼</div>`; document.body.appendChild(cardDiv); await new Promise(resolve => { const clickHandler = () => { cardDiv.removeEventListener('click', clickHandler); resolve(); }; cardDiv.addEventListener('click', clickHandler); }); cardDiv.style.animation = 'cardShrink 0.3s forwards'; await new Promise(r => setTimeout(r, 300)); cardDiv.remove(); addItemToInventory({ name: "电梯卡", desc: "可解锁房门及对应楼层，黑金智能房卡" }); }
+    async function showIdentityCard(cardHTML) { if (identityCardShown) return; identityCardShown = true; lastIdentityCardHTML = cardHTML; const lines = cardHTML.split(/\r?\n/).filter(l => l.trim().length); let contentHtml = ''; for (let line of lines) { let match = line.match(/^(.+?)[：:](.+)$/); if (match) { let label = match[1].trim().replace(/^【|】$/g, ''); let value = match[2].trim(); contentHtml += `<p><span class="field-label">${escapeHtml(label)}：</span><span class="field-value">${escapeHtml(value)}</span></p>`; } else contentHtml += `<p>${escapeHtml(line)}</p>`; } const cardDiv = document.createElement('div'); cardDiv.className = 'identity-card'; cardDiv.innerHTML = `<h3>身 份 卡</h3><div class="card-content">${contentHtml}</div><div class="click-hint">▼ 点击关闭 ▼</div>`; document.body.appendChild(cardDiv); await new Promise(resolve => { cardDiv.addEventListener('click', () => resolve(), { once: true }); }); cardDiv.style.animation = 'cardShrink 0.3s forwards'; await new Promise(r => setTimeout(r, 300)); cardDiv.remove(); await showElevatorCard(); }
+    function triggerIdentityCardIfNeeded(text) { if (identityCardShown) return; if (text.includes('病患编号') || text.includes('G816') || text.includes('豪门富家子弟')) { const identityInfo = `【病患编号：G816】\n入院身份：豪门富家子弟 专属顶级权贵疗养资格\n入院原因：患有急性胃疾，需调养7日\n住院时长：七日完整疗养周期\n权限范围：持权贵房卡，可自由通行1-8楼全部公共康养区域，享受专属私人看护服务`; showIdentityCard(identityInfo); } }
+    function addIdentitySummaryToLeft() { const leftPanel = document.getElementById("leftPanel"); if (!leftPanel || document.getElementById("identitySummaryBox")) return; const div = document.createElement('div'); div.id = "identitySummaryBox"; div.className = "identity-summary"; div.innerHTML = `<div class="title">📜 身份卡</div><div>点击查看权贵身份档案</div>`; div.onclick = () => { if (lastIdentityCardHTML) { const cardDiv = document.createElement('div'); cardDiv.className = 'identity-card'; const lines = lastIdentityCardHTML.split(/\r?\n/).filter(l => l.trim().length); let contentHtml = ''; for (let line of lines) { let match = line.match(/^(.+?)[：:](.+)$/); if (match) { let label = match[1].trim().replace(/^【|】$/g, ''); let value = match[2].trim(); contentHtml += `<p><span class="field-label">${escapeHtml(label)}：</span><span class="field-value">${escapeHtml(value)}</span></p>`; } else contentHtml += `<p>${escapeHtml(line)}</p>`; } cardDiv.innerHTML = `<h3>身 份 卡</h3><div class="card-content">${contentHtml}</div><div class="click-hint">▼ 点击关闭 ▼</div>`; document.body.appendChild(cardDiv); cardDiv.addEventListener('click', () => { cardDiv.style.animation = 'cardShrink 0.3s forwards'; setTimeout(() => cardDiv.remove(), 300); }, { once: true }); } }; const playerCard = leftPanel.querySelector(".card"); if (playerCard && playerCard.nextSibling) leftPanel.insertBefore(div, playerCard.nextSibling); else leftPanel.appendChild(div); }
+
+    // ========== 好友系统（申请+同意机制） ==========
+    function loadFriendRequests() { let req = localStorage.getItem(`friend_req_${currentUser?.number}`); return req ? JSON.parse(req) : []; }
+    function saveFriendRequests(req) { localStorage.setItem(`friend_req_${currentUser.number}`, JSON.stringify(req)); }
+    function sendFriendRequest(targetNumber) { if (!currentUser) return; let accounts = JSON.parse(localStorage.getItem("iw_accounts") || "{}"); let target = accounts[targetNumber]; if (!target) { alert("玩家不存在"); return; } if (targetNumber === currentUser.number) { alert("不能给自己发送申请"); return; } let existingFriends = loadFriends(); if (existingFriends.find(f => f.number === targetNumber)) { alert("已经是好友"); return; } // 存入对方的申请列表
+    let targetReqs = localStorage.getItem(`friend_req_${targetNumber}`); let reqs = targetReqs ? JSON.parse(targetReqs) : []; if (reqs.find(r => r.from === currentUser.number)) { alert("已发送过申请，等待对方处理"); return; } reqs.push({ from: currentUser.number, fromName: currentUser.codename, time: Date.now() }); localStorage.setItem(`friend_req_${targetNumber}`, JSON.stringify(reqs)); alert(`好友申请已发送给 ${target.codename}`); }
+    function acceptFriendRequest(fromNumber) { let reqs = loadFriendRequests(); let request = reqs.find(r => r.from === fromNumber); if (!request) return; let friends = loadFriends(); if (friends.find(f => f.number === fromNumber)) { // 已经是好友，删除申请即可
+        reqs = reqs.filter(r => r.from !== fromNumber); saveFriendRequests(reqs); alert("已经是好友"); return; } // 获取对方信息
+    let accounts = JSON.parse(localStorage.getItem("iw_accounts") || "{}"); let target = accounts[fromNumber]; if (!target) return; friends.push({ number: fromNumber, codename: target.codename }); saveFriends(friends); // 同时给对方也添加好友
+    let targetFriends = localStorage.getItem(`friends_${fromNumber}`); let tFriends = targetFriends ? JSON.parse(targetFriends) : []; if (!tFriends.find(f => f.number === currentUser.number)) { tFriends.push({ number: currentUser.number, codename: currentUser.codename }); localStorage.setItem(`friends_${fromNumber}`, JSON.stringify(tFriends)); } // 删除申请
+    reqs = reqs.filter(r => r.from !== fromNumber); saveFriendRequests(reqs); alert(`已同意 ${target.codename} 的好友申请`); renderSocialPanel(); }
+    function rejectFriendRequest(fromNumber) { let reqs = loadFriendRequests(); reqs = reqs.filter(r => r.from !== fromNumber); saveFriendRequests(reqs); alert("已拒绝好友申请"); renderSocialPanel(); }
+    function loadFriends() { let f = localStorage.getItem(`friends_${currentUser?.number}`); return f ? JSON.parse(f) : []; }
+    function saveFriends(f) { localStorage.setItem(`friends_${currentUser.number}`, JSON.stringify(f)); }
+    function renderSocialPanel() { if (!currentUser) return; let friends = loadFriends(); let html = `<div class="card-header">我的好友</div>`; friends.forEach(f => { html += `<div class="friend-item"><span>${escapeHtml(f.codename)} (${f.number})</span></div>`; }); if (!friends.length) html += `<div style="color:#555;">暂无好友</div>`; // 好友申请列表
+    let requests = loadFriendRequests(); if (requests.length > 0) { html += `<div class="card-header">📨 好友申请</div>`; requests.forEach(r => { html += `<div class="friend-item"><span>${escapeHtml(r.fromName)} (${r.from})</span><div><button class="shop-buy-btn" style="padding:2px 6px;margin-right:4px;" onclick="acceptFriendRequest('${r.from}')">同意</button><button class="shop-buy-btn" style="padding:2px 6px;" onclick="rejectFriendRequest('${r.from}')">拒绝</button></div></div>`; }); } // 添加好友表单
+    html += `<div class="add-friend-form"><input type="text" id="friendSearch" placeholder="玩家编号"><button class="shop-buy-btn" id="searchFriendBtn">发送申请</button></div>`;
+    let guilds = JSON.parse(localStorage.getItem(GUILDS_STORAGE) || "{}"); let myGuild = null; for (let gid in guilds) if (guilds[gid].members.includes(currentUser.number)) myGuild = guilds[gid]; if (myGuild) { html += `<div class="card-header">公会：${myGuild.name}</div><div>成员：${myGuild.members.length}</div><div>公会总积分：${myGuild.totalScore || 0}</div><button class="shop-buy-btn" onclick="leaveGuild()">退出公会</button>`; } else { html += `<div class="guild-create" onclick="showCreateGuild()">创建公会 (1000积分)</div><div><input type="text" id="joinGuildId" placeholder="公会ID" style="background:#080808;color:#F7E7CE;width:100%;margin:6px 0;"><button class="shop-buy-btn" onclick="joinGuild()">加入公会</button></div>`; } document.getElementById("guildPanel").innerHTML = html; document.getElementById("searchFriendBtn")?.addEventListener("click", () => { let val = document.getElementById("friendSearch").value.trim(); if (val) sendFriendRequest(val); }); }
+    function showCreateGuild() { let name = prompt("公会名称"); if (!name) return; if (currentUser.currentScore < 1000) { alert("积分不足1000"); return; } let guilds = JSON.parse(localStorage.getItem(GUILDS_STORAGE) || "{}"); let newId = Date.now().toString(); guilds[newId] = { id: newId, name: name, leader: currentUser.number, members: [currentUser.number], totalScore: 0 }; localStorage.setItem(GUILDS_STORAGE, JSON.stringify(guilds)); currentUser.currentScore -= 1000; saveUser(); renderSocialPanel(); }
+    function joinGuild() { let gid = document.getElementById("joinGuildId").value; let guilds = JSON.parse(localStorage.getItem(GUILDS_STORAGE) || "{}"); let guild = guilds[gid]; if (!guild) { alert("公会不存在"); return; } if (guild.members.includes(currentUser.number)) { alert("已在公会中"); return; } guild.members.push(currentUser.number); localStorage.setItem(GUILDS_STORAGE, JSON.stringify(guilds)); renderSocialPanel(); }
+    function leaveGuild() { let guilds = JSON.parse(localStorage.getItem(GUILDS_STORAGE) || "{}"); for (let gid in guilds) { let idx = guilds[gid].members.indexOf(currentUser.number); if (idx !== -1) guilds[gid].members.splice(idx, 1); if (guilds[gid].members.length === 0) delete guilds[gid]; break; } localStorage.setItem(GUILDS_STORAGE, JSON.stringify(guilds)); renderSocialPanel(); }
+
+    // ========== 直播系统 ==========
+    function startLiveStream() { if (!inStory) { alert("只有在副本内才能开播"); return; } if (activeLiveStream) { alert("已有直播正在进行"); return; } activeLiveStream = { streamerId: currentUser.number, streamerName: currentUser.codename, viewers: [], chatLog: [], donationTotal: 0, currentParagraph: "" }; localStorage.setItem("active_live", JSON.stringify(activeLiveStream)); isBarrageEnabled = true; alert("开播成功！其他玩家可在直播大厅观看\n弹幕显示已开启（可在左侧玩家档案中关闭）"); if (liveBarrageInterval) clearInterval(liveBarrageInterval); liveBarrageInterval = setInterval(fetchAndShowBarrages, 2000); updateStreamToggleUI(); }
+    function stopLiveStream() { activeLiveStream = null; localStorage.removeItem("active_live"); if (liveBarrageInterval) clearInterval(liveBarrageInterval); liveBarrageInterval = null; const barrageContainer = document.getElementById("barrageContainer"); if (barrageContainer) barrageContainer.innerHTML = ""; updateStreamToggleUI(); }
+    function toggleBarrage() { isBarrageEnabled = !isBarrageEnabled; const toggleBtn = document.getElementById("barrageToggle"); if (toggleBtn) toggleBtn.classList.toggle("active", isBarrageEnabled); alert(isBarrageEnabled ? "弹幕已开启" : "弹幕已关闭"); updateStreamToggleUI(); }
+    function updateStreamToggleUI() { const container = document.getElementById("streamToggleContainer"); if (container && activeLiveStream && activeLiveStream.streamerId === currentUser?.number) { container.innerHTML = `<div class="stream-toggle"><span style="font-size:0.7rem;">弹幕显示</span><div id="barrageToggle" class="toggle-switch ${isBarrageEnabled ? 'active' : ''}" onclick="toggleBarrage()"></div></div>`; } else if (container) container.innerHTML = ""; }
+    function fetchAndShowBarrages() { if (!isBarrageEnabled) return; const live = JSON.parse(localStorage.getItem("active_live")); if (!live || live.streamerId !== currentUser?.number) return; const container = document.getElementById("barrageContainer"); if (!container) return; if (live.chatLog && live.chatLog.length > 0) { const lastMsg = live.chatLog[live.chatLog.length - 1]; if (lastMsg && lastMsg.shown !== true) { lastMsg.shown = true; const barrage = document.createElement("div"); barrage.className = "barrage"; barrage.innerText = `${lastMsg.name}: ${lastMsg.text}`; barrage.style.top = Math.random() * 150 + 20 + "px"; barrage.style.animationDuration = 8 + Math.random() * 5 + "s"; container.appendChild(barrage); setTimeout(() => { if (barrage && barrage.parentNode) barrage.remove(); }, 10000); localStorage.setItem("active_live", JSON.stringify(live)); } } }
+    function renderLiveHall() { let live = JSON.parse(localStorage.getItem("active_live")); let container = document.getElementById("liveRoomList"); if (!container) return; if (live) { container.innerHTML = `<div class="live-item" onclick="watchLive()">🔴 直播中：${live.streamerName} 正在副本中</div>`; } else container.innerHTML = `<div style="color:#555;">暂无直播，副本内可按「开播」按钮</div>`; if (currentUser && inStory && !activeLiveStream) { let btn = document.createElement("button"); btn.innerText = "🎥 开启直播 (副本内)"; btn.className = "shop-buy-btn"; btn.onclick = startLiveStream; container.appendChild(btn); } }
+    function watchLive() { let live = JSON.parse(localStorage.getItem("active_live")); if (!live) return; document.getElementById("liveRoomList").style.display = "none"; let viewerDiv = document.getElementById("liveViewerArea"); viewerDiv.style.display = "block"; viewerDiv.innerHTML = `<div style="background:#111;padding:12px;"><div>🎬 主播：${live.streamerName}</div><div id="liveContent">剧情同步中...</div><div class="live-chat" id="liveChatLog"></div><div><input id="liveChatMsg" placeholder="发弹幕" style="width:70%;background:#080808;color:#F7E7CE;"><button class="shop-buy-btn" onclick="sendLiveChat()">发送</button><button class="donate-btn" onclick="donateToStreamer(10)">打赏10积分</button><button class="donate-btn" onclick="donateToStreamer(50)">打赏50</button></div><button class="shop-buy-btn" onclick="backToLiveList()">返回大厅</button></div>`; refreshLiveChat(); setInterval(() => { let l = JSON.parse(localStorage.getItem("active_live")); if (l && l.currentParagraph) document.getElementById("liveContent").innerText = l.currentParagraph.substring(0, 200); refreshLiveChat(); }, 2000); }
+    function sendLiveChat() { let live = JSON.parse(localStorage.getItem("active_live")); if (!live) return; let msg = document.getElementById("liveChatMsg").value.trim(); if (!msg) return; live.chatLog.push({ name: currentUser.codename, text: msg, time: Date.now() }); localStorage.setItem("active_live", JSON.stringify(live)); document.getElementById("liveChatMsg").value = ""; refreshLiveChat(); if (currentUser?.number === live.streamerId && isBarrageEnabled) { const container = document.getElementById("barrageContainer"); if (container) { const barrage = document.createElement("div"); barrage.className = "barrage"; barrage.innerText = `${currentUser.codename}: ${msg}`; barrage.style.top = Math.random() * 150 + 20 + "px"; barrage.style.animationDuration = 8 + Math.random() * 5 + "s"; container.appendChild(barrage); setTimeout(() => barrage.remove(), 10000); } } }
+    function donateToStreamer(amount) { if (!currentUser) return; if (currentUser.currentScore < amount) { alert("积分不足"); return; } let live = JSON.parse(localStorage.getItem("active_live")); if (!live) return; currentUser.currentScore -= amount; live.donationTotal += amount; localStorage.setItem("active_live", JSON.stringify(live)); saveUser(); alert(`打赏成功！主播获得${amount}积分`); }
+    function refreshLiveChat() { let live = JSON.parse(localStorage.getItem("active_live")); if (!live) return; let chatDiv = document.getElementById("liveChatLog"); if (chatDiv) chatDiv.innerHTML = live.chatLog.slice(-20).map(c => `<div><b>${escapeHtml(c.name)}</b>: ${escapeHtml(c.text)}</div>`).join(''); }
+    function backToLiveList() { document.getElementById("liveViewerArea").style.display = "none"; document.getElementById("liveRoomList").style.display = "block"; renderLiveHall(); }
+
+    // ========== 打字加载动画 ==========
+    async function typingLoading() { return new Promise(async (resolve) => { let div = document.createElement('div'); div.className = 'typing-loading'; div.innerHTML = `<div class="loading-box"><div class="typing-line" id="typingLine1"></div><div class="typing-line" id="typingLine2"></div><div class="typing-line" id="typingLine3"></div></div>`; document.body.appendChild(div); let lines = ["量子链路建立中...", "载入副本世界数据", "欢迎来到无限世界"]; for (let i = 0; i < lines.length; i++) { let elem = document.getElementById(`typingLine${i + 1}`); for (let ch of lines[i]) { elem.innerHTML += ch; await new Promise(r => setTimeout(r, 50)); } await new Promise(r => setTimeout(r, 300)); } setTimeout(() => { div.remove(); resolve(); }, 400); }); }
+
+    // ========== 剧情控制 ==========
+    async function typeText(element, text, speed = 18) { if (currentTypingResolve) currentTypingResolve(); isTyping = true; element.innerHTML = ''; let i = 0; await new Promise(async (resolve) => { currentTypingResolve = () => { element.innerHTML = text; i = text.length; isTyping = false; resolve(); }; for (i = 0; i < text.length; i++) { element.innerHTML += text.charAt(i); await new Promise(r => setTimeout(r, speed)); if (!isTyping) break; } isTyping = false; resolve(); }); currentTypingResolve = null; }
+    async function displayParagraph(idx) { if (idx < 0 || idx >= currentStoryParagraphs.length) return; const text = currentStoryParagraphs[idx]; storyDisplayDiv.innerHTML = ''; const para = document.createElement('div'); para.className = 'story-paragraph'; storyDisplayDiv.appendChild(para); await typeText(para, text, 15); triggerIdentityCardIfNeeded(text); document.getElementById('pageIndicator').innerText = `${idx + 1}/${currentStoryParagraphs.length}`; const nextBtn = document.getElementById('nextBtn'), prevBtn = document.getElementById('prevBtn'); if (nextBtn) nextBtn.style.opacity = (idx === currentStoryParagraphs.length - 1) ? '0.3' : '1'; if (prevBtn) prevBtn.style.opacity = (idx === 0) ? '0.3' : '1'; let live = JSON.parse(localStorage.getItem("active_live")); if (live && live.streamerId === currentUser?.number) { live.currentParagraph = text; localStorage.setItem("active_live", JSON.stringify(live)); } }
+    function handleNext() { if (isTyping) { if (currentTypingResolve) currentTypingResolve(); } else if (currentIndex + 1 < currentStoryParagraphs.length) { currentIndex++; displayParagraph(currentIndex); } }
+    function handlePrev() { if (isTyping) { if (currentTypingResolve) currentTypingResolve(); } else if (currentIndex - 1 >= 0) { currentIndex--; displayParagraph(currentIndex); } }
+    function splitStoryIntoPages(fullText) { let paras = fullText.split(/\n{2,}/); let pages = []; for (let p of paras) { if (p.includes('住院须知') || p.includes('病患编号')) { pages.push(p.trim()); continue; } let sentences = p.match(/[^。!?]+[。!?]/g) || [p]; let cur = ""; for (let s of sentences) { if ((cur + s).length > 200 && cur.length) { pages.push(cur.trim()); cur = s; } else cur += s; } if (cur) pages.push(cur.trim()); } return pages.filter(p => p); }
+
+    // ========== 进入/退出副本（使用独立剧情） ==========
+    async function enterDungeon(id, name) { 
+        if (inStory) return; 
+        await typingLoading(); 
+        identityCardShown = false; 
+        elevatorCardObtained = false; 
+        initInventory(); 
+        document.getElementById("rightPanel").style.display = "none"; 
+        document.getElementById("dungeonTab").style.display = "none"; 
+        document.getElementById("shopTab").style.display = "none"; 
+        document.getElementById("bagTab").style.display = "none"; 
+        document.getElementById("socialTab").style.display = "none"; 
+        document.getElementById("liveTab").style.display = "none"; 
+        
+        const leftPanel = document.getElementById("leftPanel"); 
+        leftPanel.innerHTML = `<div class="card"><div class="card-header">◆ 玩家档案</div>
+            <div class="card-row"><span>代号</span><span class="value gold" id="miniProfileName">${escapeHtml(currentUser.codename)}</span></div>
+            <div class="card-row"><span>HP</span><span id="miniHp">${currentUser.hp}</span></div>
+            <div class="card-row"><span>理智</span><span id="miniSan">${currentUser.san}</span></div>
+            <div class="card-row"><span>积分</span><span class="value cyan" id="miniScore">${currentUser.currentScore.toFixed(0)}</span></div>
+            <div class="hp-bar-wrap"><div class="hp-bar" style="width:${currentUser.hp}%"></div></div>
+            <div class="san-bar-wrap"><div class="san-bar" style="width:${currentUser.san}%"></div></div>
+            <button class="shop-buy-btn" style="margin-top:12px;" onclick="startLiveStream()">🎥 开启直播</button>
+            <div id="streamToggleContainer" style="margin-top:8px;"></div>
+        </div>
+        <div class="dungeon-info-card-large"><div class="info-title">◆ 副本信息</div>
+            <div class="dungeon-name">${escapeHtml(name)}</div>
+            <div class="detail-row"><span class="detail-label">等级</span><span class="detail-value">${ALL_DUNGEONS.find(d=>d.id===id)?.difficulty || '未知'}</span></div>
+            <div class="detail-row"><span class="detail-label">类型</span><span class="detail-value">${ALL_DUNGEONS.find(d=>d.id===id)?.type || '未知'}</span></div>
+            <div class="detail-row"><span class="detail-label">主线任务</span><span class="detail-value">探索副本，在诡异中存活，寻找出口</span></div>
+            <div class="detail-row"><span class="detail-label">通关奖励</span><span class="detail-value">${ALL_DUNGEONS.find(d=>d.id===id)?.reward || '基础积分'}</span></div>
+        </div>
+        <div class="card"><div class="card-header">◆ 物 品 栏</div><div id="dungeonItemGrid" class="item-grid"></div></div>`;
+        renderItemGrid(); 
+        addIdentitySummaryToLeft(); 
+        updateStreamToggleUI(); 
+        
+        let storyArea = document.getElementById("dynamicStoryArea"); 
+        if (!storyArea) { storyArea = document.createElement("div"); storyArea.id = "dynamicStoryArea"; document.getElementById("centralPanel").appendChild(storyArea); } 
+        storyArea.style.display = "block"; 
+        // 获取独立剧情文本
+        const storyContent = getStoryByDungeonId(id);
+        const fullStory = `【副本：${name}】\n${storyContent}\n\n---\n【系统提示】\n请仔细探索周围，规则已经生效。你的每一个选择都可能影响结局。`;
+        currentStoryParagraphs = splitStoryIntoPages(fullStory); 
+        currentIndex = 0; 
+        storyArea.innerHTML = `<div class="story-area"><div class="story-header"><div class="story-title">${escapeHtml(name)}</div></div><div class="story-text" id="storyTextContainer"></div><div class="story-nav"><div class="nav-arrow" id="prevBtn">◀</div><div class="page-indicator" id="pageIndicator">1/${currentStoryParagraphs.length}</div><div class="nav-arrow" id="nextBtn">▶</div></div><button class="exit-dungeon-btn" id="exitDungeonBtn">◈ 返回副本库 ◈</button></div>`; 
+        storyDisplayDiv = document.getElementById("storyTextContainer"); 
+        storyClickHandler = (e) => { const rect = storyDisplayDiv.getBoundingClientRect(); if (e.clientX - rect.left < rect.width / 2) handlePrev(); else handleNext(); }; 
+        storyDisplayDiv.addEventListener('click', storyClickHandler); 
+        document.getElementById("prevBtn").onclick = handlePrev; 
+        document.getElementById("nextBtn").onclick = handleNext; 
+        document.getElementById("exitDungeonBtn").onclick = () => exitDungeon(); 
+        await displayParagraph(0); 
+        destroyNoteWidget(); 
+        createNoteWidget(id); 
+        inStory = true; 
+    }
+
+    function exitDungeon() { 
+        if (activeLiveStream && activeLiveStream.streamerId === currentUser?.number) {
+            stopLiveStream();
+        }
+        inStory = false; 
+        document.getElementById("rightPanel").style.display = "flex"; 
+        document.getElementById("dungeonTab").style.display = "block"; 
+        document.getElementById("shopTab").style.display = "none";
+        document.getElementById("bagTab").style.display = "none";
+        document.getElementById("socialTab").style.display = "none";
+        document.getElementById("liveTab").style.display = "none";
+        
+        const leftPanel = document.getElementById("leftPanel");
+        leftPanel.innerHTML = `<div class="card"><div class="card-header">◆ 玩家档案</div>
+            <div class="card-row"><span>代号</span><span class="value gold" id="profileName">${currentUser.codename}</span></div>
+            <div class="card-row"><span>编号</span><span id="profileNum">${currentUser.number}</span></div>
+            <div class="card-row"><span>历史总积分</span><span class="value gold" id="totalScore">${currentUser.totalScore}</span></div>
+            <div class="card-row"><span>当前积分</span><span class="value cyan" id="curScore">${currentUser.currentScore.toFixed(2)}</span></div>
+            <div class="card-row"><span>HP</span><span id="hpVal">${currentUser.hp}/100</span></div>
+            <div class="hp-bar-wrap"><div class="hp-bar" id="hpBarMain" style="width:${currentUser.hp}%"></div></div>
+            <div class="card-row"><span>理智 SAN</span><span id="sanVal">${currentUser.san}/100</span></div>
+            <div class="san-bar-wrap"><div class="san-bar" id="sanBarMain" style="width:${currentUser.san}%"></div></div>
+            <div class="card-row"><span>状态</span><span id="statusTxt">正常</span></div>
+            <div class="card-header" style="margin-top:12px;">⚔️ 装备加成</div>
+            <div id="equipStatsDisplay" class="card-row"><span>防御+0 生命+0</span></div>
+            <button style="margin-top:8px;background:transparent;border:1px solid #2A2A2A;color:#888;padding:4px 8px;font-size:0.65rem;" onclick="togglePrivacy()">隐身模式：关</button>
+        </div>
+        <div class="card"><div class="card-header">◆ 装备栏 (最多5件)</div><div id="equippedSlotsContainer" class="equip-slot-grid"></div></div>
+        <div class="card"><div class="card-header" style="color:#3A2020;">◆ 系统·残响日志</div><div id="echoLog" style="font-size:0.7rem;color:#4A2E2E;">[ 无异常信号 ]</div></div>`;
+        updateEquipUI(); 
+        renderBag(); 
+        if (lastIdentityCardHTML) {
+            addIdentitySummaryToLeft();
+        }
+        const storyArea = document.getElementById("dynamicStoryArea"); 
+        if (storyArea) storyArea.style.display = "none"; 
+        destroyNoteWidget(); 
+        renderLiveHall(); 
+        const barrageContainer = document.getElementById("barrageContainer");
+        if (barrageContainer) barrageContainer.innerHTML = "";
+        const toggleContainer = document.getElementById("streamToggleContainer");
+        if (toggleContainer) toggleContainer.innerHTML = "";
+        // 确保所有主界面按钮可点（清除可能的残留禁用状态）
+        document.querySelectorAll(".top-bar-nav button").forEach(btn => btn.disabled = false);
+    }
+
+    // ========== 主界面左侧面板初始化 ==========
+    function initLeftPanelMain() {
+        if (!currentUser) return;
+        const leftPanel = document.getElementById("leftPanel");
+        leftPanel.innerHTML = `<div class="card"><div class="card-header">◆ 玩家档案</div>
+            <div class="card-row"><span>代号</span><span class="value gold" id="profileName">${currentUser.codename}</span></div>
+            <div class="card-row"><span>编号</span><span id="profileNum">${currentUser.number}</span></div>
+            <div class="card-row"><span>历史总积分</span><span class="value gold" id="totalScore">${currentUser.totalScore}</span></div>
+            <div class="card-row"><span>当前积分</span><span class="value cyan" id="curScore">${currentUser.currentScore.toFixed(2)}</span></div>
+            <div class="card-row"><span>HP</span><span id="hpVal">${currentUser.hp}/100</span></div>
+            <div class="hp-bar-wrap"><div class="hp-bar" id="hpBarMain" style="width:${currentUser.hp}%"></div></div>
+            <div class="card-row"><span>理智 SAN</span><span id="sanVal">${currentUser.san}/100</span></div>
+            <div class="san-bar-wrap"><div class="san-bar" id="sanBarMain" style="width:${currentUser.san}%"></div></div>
+            <div class="card-row"><span>状态</span><span id="statusTxt">正常</span></div>
+            <div class="card-header" style="margin-top:12px;">⚔️ 装备加成</div>
+            <div id="equipStatsDisplay" class="card-row"><span>防御+0 生命+0</span></div>
+            <button style="margin-top:8px;background:transparent;border:1px solid #2A2A2A;color:#888;padding:4px 8px;font-size:0.65rem;" onclick="togglePrivacy()">隐身模式：关</button>
+        </div>
+        <div class="card"><div class="card-header">◆ 装备栏 (最多5件)</div><div id="equippedSlotsContainer" class="equip-slot-grid"></div></div>
+        <div class="card"><div class="card-header" style="color:#3A2020;">◆ 系统·残响日志</div><div id="echoLog" style="font-size:0.7rem;color:#4A2E2E;">[ 无异常信号 ]</div></div>`;
+        updateEquipUI();
+        if (lastIdentityCardHTML) {
+            addIdentitySummaryToLeft();
+        }
+    }
+
+    // ========== 主界面切换 ==========
+    function switchMainTab(tab) { 
+        if (inStory) return; 
+        document.getElementById("dungeonTab").style.display = tab === "dungeon" ? "block" : "none"; 
+        document.getElementById("shopTab").style.display = tab === "shop" ? "block" : "none"; 
+        document.getElementById("bagTab").style.display = tab === "bag" ? "block" : "none"; 
+        document.getElementById("socialTab").style.display = tab === "social" ? "block" : "none"; 
+        document.getElementById("liveTab").style.display = tab === "live" ? "block" : "none"; 
+        document.querySelectorAll(".top-bar-nav button").forEach(btn => btn.classList.remove("active-nav")); 
+        event.target.classList.add("active-nav"); 
+        if (tab === "bag") renderBag(); 
+        if (tab === "social") renderSocialPanel(); 
+        if (tab === "live") renderLiveHall(); 
+    }
+
+    // ========== 登录 / 注册 ==========
+    function handleLogin() { let name = document.getElementById("loginCodename").value.trim(); let pwd = document.getElementById("loginPassword").value.trim(); let accounts = JSON.parse(localStorage.getItem("iw_accounts") || "{}"); let user = Object.values(accounts).find(u => u.codename === name && u.password === pwd); if (user) { currentUser = user; localStorage.setItem("iw_user", JSON.stringify(user)); enterMain(); } else document.getElementById("loginFeedback").innerText = "代号或密钥错误"; }
+    function showRegPanel() { document.getElementById("authStepLogin").style.display = "none"; document.getElementById("authStepRegister").style.display = "block"; document.getElementById("regStep1").style.display = "block"; document.getElementById("regStep2").style.display = "none"; document.getElementById("regStep3").style.display = "none"; }
+    function backToLogin() { document.getElementById("authStepLogin").style.display = "block"; document.getElementById("authStepRegister").style.display = "none"; }
+    function sendRegCode() { let phone = document.getElementById("regPhone").value; if (!phone) return; document.getElementById("regFeedback1").innerText = "验证码 000000"; setTimeout(() => { document.getElementById("regStep1").style.display = "none"; document.getElementById("regStep2").style.display = "block"; }, 500); }
+    function updateRegEntropy() { let pwd = document.getElementById("regPwd").value; let w = Math.min(100, pwd.length * 12); document.getElementById("entropyReg").style.width = w + "%"; }
+    function verifyRegStep() { let code = document.getElementById("smsCode").value; if (code !== "000000") { document.getElementById("regFeedback2").innerText = "验证码错误"; return; } document.getElementById("regStep2").style.display = "none"; document.getElementById("regStep3").style.display = "block"; }
+    function finishRegistration() { let codename = document.getElementById("finalCodename").value.trim(); if (!codename) return; let accounts = JSON.parse(localStorage.getItem("iw_accounts") || "{}"); if (Object.values(accounts).some(a => a.codename === codename)) { alert("代号已存在"); return; } let number = Math.floor(1000000 + Math.random() * 9000000).toString(); let newUser = { codename, number, password: document.getElementById("regPwd").value, totalScore: 0, currentScore: 500, hp: 100, san: 100, status: "正常", lifeCard: 1, privacyMode: false, isAlive: true, bag: { consumable: [], equipment: [], rare: [] }, equippedItems: [] }; accounts[number] = newUser; localStorage.setItem("iw_accounts", JSON.stringify(accounts)); currentUser = newUser; localStorage.setItem("iw_user", JSON.stringify(newUser)); enterMain(); }
+    
+    function enterMain() { 
+        document.getElementById("authContainer").classList.add("hidden"); 
+        document.getElementById("mainContainer").classList.add("visible"); 
+        if (!currentUser.bag) currentUser.bag = { consumable: [], equipment: [], rare: [] }; 
+        if (!currentUser.equippedItems) currentUser.equippedItems = []; 
+        initLeftPanelMain();
+        updatePlayerUI(); 
+        renderDungeonGrid(); 
+        renderRanking(); 
+        renderShopConsumable(); 
+        renderBag(); 
+        updateEquipUI(); 
+        renderForum(); 
+        document.getElementById("forumSendBtn").onclick = postForumMessage; 
+        document.getElementById("forumInput").addEventListener("keypress", function (e) { if (e.key === "Enter") postForumMessage(); }); 
+        renderCarousel(); 
+        initCarouselEvents(); 
+        renderLiveHall(); 
+        // 好友申请按钮绑定在renderSocialPanel中动态生成，但先调用一次初始化
+        renderSocialPanel(); 
+    }
+    
+    function logout() { if (!currentUser) return; if (confirm("确定要断开链接吗？")) { localStorage.removeItem("iw_user"); currentUser = null; if (inStory) exitDungeon(); document.getElementById("mainContainer").classList.remove("visible"); document.getElementById("authContainer").classList.remove("hidden"); document.getElementById("loginCodename").value = ""; document.getElementById("loginPassword").value = ""; document.getElementById("loginFeedback").innerText = ""; if (carouselTimer) clearInterval(carouselTimer); document.getElementById("rightPanel").style.display = "flex"; document.getElementById("dungeonTab").style.display = "block"; document.getElementById("shopTab").style.display = "none"; document.getElementById("bagTab").style.display = "none"; document.getElementById("socialTab").style.display = "none"; const storyArea = document.getElementById("dynamicStoryArea"); if (storyArea) storyArea.style.display = "none"; inStory = false; destroyNoteWidget(); if (liveBarrageInterval) clearInterval(liveBarrageInterval); } }
+    
+    let saved = localStorage.getItem("iw_user"); if (saved) { currentUser = JSON.parse(saved); if (currentUser.isAlive !== false) enterMain(); else localStorage.removeItem("iw_user"); }
+
+    // 暴露全局函数
+    window.handleLogin = handleLogin; window.showRegPanel = showRegPanel; window.backToLogin = backToLogin; window.sendRegCode = sendRegCode; window.verifyRegStep = verifyRegStep; window.finishRegistration = finishRegistration; window.switchMainTab = switchMainTab; window.switchShopCategory = function (cat) { currentShopCategory = cat; document.querySelectorAll(".shop-tab").forEach(btn => btn.classList.remove("active")); event.target.classList.add("active"); if (cat === "consumable") renderShopConsumable(); else renderShopEquipment(); }; window.logout = logout; window.togglePrivacy = function () { if (currentUser) currentUser.privacyMode = !currentUser.privacyMode; saveUser(); }; window.startLiveStream = startLiveStream; window.watchLive = watchLive; window.sendLiveChat = sendLiveChat; window.donateToStreamer = donateToStreamer; window.backToLiveList = backToLiveList; window.showCreateGuild = showCreateGuild; window.joinGuild = joinGuild; window.leaveGuild = leaveGuild; window.equipItemFromBag = equipItemFromBag; window.unequipItem = unequipItem; window.changePage = changePage; window.toggleBarrage = toggleBarrage; window.acceptFriendRequest = acceptFriendRequest; window.rejectFriendRequest = rejectFriendRequest; window.sendFriendRequest = sendFriendRequest;
+    let currentShopCategory = "consumable";
+</script>
+</body>
+</html>
